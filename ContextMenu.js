@@ -268,12 +268,10 @@ class ContextMenu {
 
         document.body.appendChild(contextMenu);
 
-        if (this.animation.duration === 0) {
-            contextMenu.style.left = `${x - 5}px`;
-            contextMenu.style.top = `${y - 5}px`;
-        } else {
-            contextMenu.style.left = `${x - 5}px`;
-            contextMenu.style.top = `${y - 5}px`;
+        contextMenu.style.left = `${x - 5}px`;
+        contextMenu.style.top = `${y - 5}px`;
+        contextMenu.style.position = 'fixed';
+        if (this.animation.duration !== 0) {
             contextMenu.style.transition = `opacity ${this.animation.duration}ms ${this.animation.timing}`;
 
             requestAnimationFrame(() => {
@@ -334,12 +332,10 @@ class ContextMenu {
         };
 
         const position = calculatePosition(element, isRoot);
-        if (this.animation.animationDuration === 0) {
-            contextMenu.style.left = `${position.left}px`;
-            contextMenu.style.top = `${position.top}px`;
-        } else {
-            contextMenu.style.left = `${position.left}px`;
-            contextMenu.style.top = `${position.top}px`;
+        contextMenu.style.left = `${position.left}px`;
+        contextMenu.style.top = `${position.top}px`;
+        contextMenu.style.position = 'fixed';
+        if (this.animation.animationDuration !== 0) {
             contextMenu.style.transition = `opacity ${this.animation.duration}ms ${this.animation.timing}`;
 
             requestAnimationFrame(() => {
