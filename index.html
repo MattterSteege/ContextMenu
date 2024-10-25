@@ -8,15 +8,36 @@
 </head>
 <body>
 
-<div id="content">
+<div id="content" style="width: 300px; height: 200px; border: 1px solid #ccc; padding: 10px;">
     Right-click anywhere in this area to see the context menu.
 </div>
 
 <script src="ContextMenu.js"></script>
 <script>
     // Initialize and configure the context menu
+    //SUB CONTEXT MENU
+    const subMenu = new ContextMenu({
+        animationDuration: 200,
+        animationTiming: 'ease-out'
+    });
+
+    subMenu.addButton({
+        text: 'Submenu Item 1',
+        icon: 'sub-icon',
+        action: () => {
+            alert('Submenu Item 1 selected')
+        }
+    })
+    .addButton({
+        text: 'Submenu Item 2',
+        icon: 'sub-icon',
+        action: () => {
+            alert('Submenu Item 2 selected')
+        }
+    });
+
+    //MAIN CONTEXT MENU
     const menu = new ContextMenu({
-        animationType: 'fade',
         animationDuration: 200,
         animationTiming: 'ease-out'
     });
@@ -24,14 +45,24 @@
     menu.addButton({
         text: 'Edit',
         icon: 'edit-icon',
-        action: () => alert('Edit selected')
+        action: () => {
+            alert('Edit selected')
+        }
     })
-        .addSeparator()
-        .addButton({
-            text: 'Delete',
-            icon: 'delete-icon',
-            action: () => alert('Delete selected')
-        });
+    .addSeparator()
+    .addButton({
+        text: 'Delete',
+        icon: 'delete-icon',
+        action: () => {
+            alert('Delete selected')
+        }
+    })
+    .addSeparator()
+    .addSubMenu({
+        text: 'Submenu',
+        icon: 'sub-icon',
+        subMenu: subMenu
+    });
 
     // Display the context menu on right-click within #content
     document.getElementById('content').addEventListener('contextmenu', (e) => {
