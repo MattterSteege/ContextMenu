@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContextMenu Example</title>
+    <link rel="stylesheet" href="ContextMenu.css">
+</head>
+<body>
+
+<div id="content">
+    Right-click anywhere in this area to see the context menu.
+</div>
+
+<script src="ContextMenu.js"></script>
+<script>
+    // Initialize and configure the context menu
+    const menu = new ContextMenu({
+        animationType: 'fade',
+        animationDuration: 200,
+        animationTiming: 'ease-out'
+    });
+
+    menu.addButton({
+        text: 'Edit',
+        icon: 'edit-icon',
+        action: () => alert('Edit selected')
+    })
+        .addSeparator()
+        .addButton({
+            text: 'Delete',
+            icon: 'delete-icon',
+            action: () => alert('Delete selected')
+        });
+
+    // Display the context menu on right-click within #content
+    document.getElementById('content').addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        menu.showAt(e.clientX, e.clientY);
+    });
+</script>
+
+</body>
+</html>
