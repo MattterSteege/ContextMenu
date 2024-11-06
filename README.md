@@ -19,7 +19,9 @@
 - **Keyboard Accessibility**: Supports keyboard navigation with key event handling for improved accessibility.
 - **Event Handling**: Attach event listeners for click, context menu, mouseover, and keypress actions.
 - **Automatic Submenu Positioning**: Ensures submenus appear within the viewport without clipping.
-
+<br>
+<br>
+![img.png](img.png)
 ## Installation
 1. Download or clone this repository.
 2. Include `ContextMenu.js` in your project:
