@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContextMenu Example</title>
+    <link rel="stylesheet" href="ContextMenu.css">
+    <link rel="stylesheet" href="https://fa.kronk.tech">
+</head>
+<body style="background: #f4f4f4; font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+
+<div id="content" style="width: 300px; height: 200px; border: 1px solid #ccc; padding: 10px; background: #fff; border-radius: 5px;">
+    Right-click anywhere in this area to see the context menu.
+</div>
+
+<button onclick="menu.showAt(100, 100)">Show at 100, 100</button>
+
+<script src="ContextMenu.js"></script>
+<script>
+    // Initialize and configure the context menu
+    //SUB CONTEXT MENU
+    const subMenu = new ContextMenu()
+    .addButton({
+        text: 'Sub Item 1',
+        icon: 'fa fa-home',
+        action: () => {
+            alert('Submenu Item 1 selected')
+        }
+    })
+        .addButton({
+            text: 'Sub Item 2',
+            icon: 'fa fa-user',
+            action: () => {
+                alert('Sub Item 2 selected')
+            }
+        });
+
+    //MAIN CONTEXT MENU
+    const menu = new ContextMenu({
+        animationDuration: 200,
+        animationTiming: 'ease-out',
+        RTL: false,
+        menuWidth: '150',
+    });
+
+    menu.addButton({
+        text: 'Edit',
+        icon: 'fa fa-edit',
+        action: () => {
+            alert('Edit selected')
+        }
+    })
+        .addSeparator()
+        .addButton({
+            text: 'Delete',
+            icon: 'fa fa-trash',
+            action: () => {
+                alert('Delete selected')
+            }
+        })
+        .addSeparator()
+        .addSubMenu({
+            text: 'Submenu',
+            icon: 'fa fa-cog',
+            subMenu: subMenu
+        });
+
+    // Display the context menu on right-click within #content
+    document.getElementById('content').addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        menu.showAt(e.clientX, e.clientY);
+    });
+</script>
+
+</body>
+</html>
