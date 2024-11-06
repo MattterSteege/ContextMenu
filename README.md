@@ -57,6 +57,15 @@
    ```javascript
     contextMenu.showAt(x, y);
     ```
+   
+### Keyboard Navigation
+- **Arrow Keys**: Navigate through menu items.
+- **Enter/Space**: Trigger button action or open submenu.
+- **Escape**: Close the menu.
+- **Tab/Shift+Tab**: Move focus to the next/previous focusable element.
+- **Arrow Keys**: Navigate through submenus.
+  - **Right/Left**: Open/close submenu. (depends on RTL setting)
+  - **Up/Down**: Navigate through (sub)menu items.
 
 ## Configuration
 The following properties can be set on initialization:

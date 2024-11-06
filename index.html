@@ -7,15 +7,24 @@
     <link rel="stylesheet" href="ContextMenu.css">
     <link rel="stylesheet" href="https://fa.kronk.tech">
 </head>
-<body style="background: #f4f4f4; font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
 
-<div id="content" style="width: 300px; height: 200px; border: 1px solid #ccc; padding: 10px; background: #fff; border-radius: 5px;">
-    Right-click anywhere in this area to see the context menu.
+<div class="container" style="background: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+    <div id="content" style="width: 300px; height: 200px; border: 1px solid #ccc; padding: 10px; background: #fff; border-radius: 5px;">
+        Right-click anywhere in this area to see the context menu.
+    </div>
+
+    <div id="example" style="margin-left: 100px; width: 300px; height: 200px; border: 1px solid #ccc; padding: 10px; background: #fff; border-radius: 5px;">
+        Use the arrow keys to navigate the context menu, and press Enter to select an item, use the keys that you think are logical and it will probably work.
+
+    </div>
+
+    <div id="contentRTL" style=" margin-left: 100px; width: 300px; height: 200px; border: 1px solid #ccc; padding: 10px; background: #fff; border-radius: 5px;">
+        Right-click anywhere in this area to see the context menu. (RTL)
+    </div>
+
 </div>
 
-<div id="contentRTL" style=" margin-left: 100px; width: 300px; height: 200px; border: 1px solid #ccc; padding: 10px; background: #fff; border-radius: 5px;">
-    Right-click anywhere in this area to see the context menu. (RTL)
-</div>
 
 <script src="ContextMenu.js"></script>
 <script>
@@ -72,6 +81,7 @@
     // Display the context menu on right-click within #content
     document.getElementById('content').addEventListener('contextmenu', (e) => {
         e.preventDefault();
+        menuRTL.destroy();
         menu.showAt(e.clientX, e.clientY);
     });
 
@@ -127,6 +137,7 @@
     // Display the context menu on right-click within #content
     document.getElementById('contentRTL').addEventListener('contextmenu', (e) => {
         e.preventDefault();
+        menu.destroy();
         menuRTL.showAt(e.clientX, e.clientY);
     });
 </script>
