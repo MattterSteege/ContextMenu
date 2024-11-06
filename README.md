@@ -18,12 +18,18 @@ A customizable and dynamic context menu component for web applications, supporti
 
 ## Features
 
-- **Flexible Layout**: Supports buttons, separators, and submenus.
-- **Customizable Styles**: Easily adjust layout, positioning, and animations.
-- **Keyboard Navigation**: Full support for keyboard shortcuts, including arrow keys and escape.
-- **Event Management**: Includes built-in listeners for context menus, clicks, and key presses.
-- **Accessible Markup**: Marked-up with `aria` attributes for screen readers.
--
+## Features
+
+The `ContextMenu` library provides a customizable, accessible, and flexible context menu component for web applications. It includes:
+
+- **Customizable Layout**: Control spacing, width, and RTL support through the `style` object, allowing seamless integration with various UI designs.
+- **Dynamic Menu Structure**: Easily add buttons, separators, and submenus using `addButton`, `addSeparator`, and `addSubMenu` methods.
+- **Animation Options**: Configure animations with adjustable duration and timing for smooth visual transitions.
+- **Event Handling**: Includes support for `click`, `contextmenu`, `mouseover`, and keyboard events, enhancing usability and accessibility.
+- **Keyboard Navigation**: Navigate menus with arrow keys, activate items with Enter/Space, and close menus with Escape.
+- **Accessible**: Uses ARIA roles and attributes for enhanced screen reader compatibility.
+- **Utility Methods**: Built-in `showAt` method for displaying menus at specific screen coordinates, and `destroy` method for cleanup and memory management.
+
 ![img.png](img.png)
 
 ## Installation
@@ -213,3 +219,4 @@ Below is an example of how to set up an HTML page with `ContextMenu` integration
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
