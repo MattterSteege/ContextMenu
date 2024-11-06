@@ -13,8 +13,14 @@
     Right-click anywhere in this area to see the context menu.
 </div>
 
+<div id="contentRTL" style=" margin-left: 100px; width: 300px; height: 200px; border: 1px solid #ccc; padding: 10px; background: #fff; border-radius: 5px;">
+    Right-click anywhere in this area to see the context menu. (RTL)
+</div>
+
 <script src="ContextMenu.js"></script>
 <script>
+
+    /* Normal Context Menu */
     // Initialize and configure the context menu
     //SUB CONTEXT MENU
     const subMenu = new ContextMenu()
@@ -67,6 +73,61 @@
     document.getElementById('content').addEventListener('contextmenu', (e) => {
         e.preventDefault();
         menu.showAt(e.clientX, e.clientY);
+    });
+
+    /* RTL Context Menu */
+    // Initialize and configure the context menu
+    //SUB CONTEXT MENU
+    const subMenuRTL = new ContextMenu()
+    .addButton({
+        text: 'Sub Item 1',
+        icon: 'fa fa-home',
+        action: () => {
+            alert('Submenu Item 1 selected')
+        }
+    })
+        .addButton({
+            text: 'Sub Item 2',
+            icon: 'fa fa-user',
+            action: () => {
+                alert('Sub Item 2 selected')
+            }
+        });
+
+    //MAIN CONTEXT MENU
+    const menuRTL = new ContextMenu({
+        animationDuration: 200,
+        animationTiming: 'ease-out',
+        RTL: true,
+        menuWidth: '150',
+    });
+
+    menuRTL.addButton({
+        text: 'Edit',
+        icon: 'fa fa-edit',
+        action: () => {
+            alert('Edit selected')
+        }
+    })
+        .addSeparator()
+        .addButton({
+            text: 'Delete',
+            icon: 'fa fa-trash',
+            action: () => {
+                alert('Delete selected')
+            }
+        })
+        .addSeparator()
+        .addSubMenu({
+            text: 'Submenu',
+            icon: 'fa fa-cog',
+            subMenu: subMenuRTL
+        });
+
+    // Display the context menu on right-click within #content
+    document.getElementById('contentRTL').addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        menuRTL.showAt(e.clientX, e.clientY);
     });
 </script>
 
