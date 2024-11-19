@@ -168,23 +168,31 @@ class ContextMenu {
     }
 
     destroy() {
+        // Existing cleanup
         const menu = document.getElementById(this.id);
-        if (menu) {
-            menu.remove();
-        }
+        menu && menu.remove();
 
         // Remove event listeners
         const {handleClick, handleContextMenu, handleMouseOver} = this._eventHandlers;
-        document.removeEventListener('click', handleClick);
-        document.removeEventListener('contextmenu', handleContextMenu);
-        document.removeEventListener('mouseover', handleMouseOver);
+        document.removeEventListener("click", handleClick);
+        document.removeEventListener("contextmenu", handleContextMenu);
+        document.removeEventListener("mouseover", handleMouseOver);
 
+        // Recursively destroy submenus
+        this.items.forEach(item => {
+            if (item.type === ContextMenu.ITEM_TYPES.SUBMENU && item.submenu) {
+                item.submenu.destroy();
+            }
+        });
 
-        // Clean up references
+        // Clear all references
         this.items = [];
         this._eventHandlers = {};
+        this.id = null;
+        this.options = null;
 
-        return this;
+        // If you want to make the instance unusable after destruction
+        Object.freeze(this);
     }
 
 //    /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
