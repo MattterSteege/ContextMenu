@@ -1,146 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ContextMenu Example</title>
-    <link rel="stylesheet" href="ContextMenu.css">
-    <link rel="stylesheet" href="https://fa.kronk.tech">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Context Menu Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+    #demo-area {
+      width: 300px;
+      height: 200px;
+      background-color: white;
+      border: 2px dashed #3b82f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: context-menu;
+    }
+  </style>
+  <script src="dist/ContextMenu.js"></script>
 </head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
-
-<div class="container" style="background: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
-    <div id="content" style="width: 300px; height: 200px; border: 1px solid #ccc; padding: 10px; background: #fff; border-radius: 5px;">
-        Right-click anywhere in this area to see the context menu.
-    </div>
-
-    <div id="example" style="margin-left: 100px; width: 300px; height: 200px; border: 1px solid #ccc; padding: 10px; background: #fff; border-radius: 5px;">
-        Use the arrow keys to navigate the context menu, and press Enter to select an item, use the keys that you think are logical and it will probably work.
-
-    </div>
-
-    <div id="contentRTL" style=" margin-left: 100px; width: 300px; height: 200px; border: 1px solid #ccc; padding: 10px; background: #fff; border-radius: 5px;">
-        Right-click anywhere in this area to see the context menu. (RTL)
-    </div>
-
+<body>
+<div id="demo-area">
+  Right-click here to open context menu
 </div>
 
-
-<script src="ContextMenu.js"></script>
 <script>
+  // Create the main context menu
+  const mainMenu = new ContextMenu({
+    width: 250,
+    style: {
+      accent: '#3b82f6',
+      backgroundColor: '#ffffff',
+      textColor: '#333333'
+    }
+  });
 
-    /* Normal Context Menu */
-    // Initialize and configure the context menu
-    //SUB CONTEXT MENU
-    const subMenu = new ContextMenu()
-    .addButton({
-        text: 'Sub Item 1',
-        icon: 'fa fa-home',
-        action: () => {
-            alert('Submenu Item 1 selected')
-        }
-    })
-        .addButton({
-            text: 'Sub Item 2',
-            icon: 'fa fa-user',
-            action: () => {
-                alert('Sub Item 2 selected')
-            }
-        });
+  // Build the context menu with multiple submenus
+  mainMenu
+          .button("Open", () => alert("Open clicked"))
+          .button("Save", () => alert("Save clicked"))
+          .separator()
+          .submenu("Edit", (submenu) => {
+            submenu
+                    .button("Cut", () => alert("Cut"))
+                    .button("Copy", () => alert("Copy"))
+                    .button("Paste", () => alert("Paste"))
+                    .separator()
+                    .submenu("Advanced", (advanced) => {
+                      advanced
+                              .button("Find", () => alert("Find"))
+                              .button("Replace", () => alert("Replace"))
+                    });
+          })
+          .submenu("View", (submenu) => {
+            submenu
+                    .checkbox("Fullscreen", {
+                      checked: false,
+                      onChange: (checked) => alert(`Fullscreen: ${checked}`)
+                    })
+                    .dropdown("Zoom", [
+                      { value: "50", label: "50%" },
+                      { value: "100", label: "100%" },
+                      { value: "200", label: "200%" }
+                    ], {
+                      value: "100",
+                      onChange: (value) => alert(`Zoom: ${value}`)
+                    })
+          })
+          .separator()
+          .button("Help", () => alert("Help clicked"));
 
-    //MAIN CONTEXT MENU
-    const menu = new ContextMenu({
-        animationDuration: 200,
-        animationTiming: 'ease-out',
-        RTL: false,
-        menuWidth: '150',
-    });
-
-    menu.addButton({
-        text: 'Edit',
-        icon: 'fa fa-edit',
-        action: () => {
-            alert('Edit selected')
-        }
-    })
-        .addSeparator()
-        .addButton({
-            text: 'Delete',
-            icon: 'fa fa-trash',
-            action: () => {
-                alert('Delete selected')
-            }
-        })
-        .addSeparator()
-        .addSubMenu({
-            text: 'Submenu',
-            icon: 'fa fa-cog',
-            subMenu: subMenu
-        });
-
-    // Display the context menu on right-click within #content
-    document.getElementById('content').addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        menuRTL.destroy();
-        menu.showAt(e.clientX, e.clientY);
-    });
-
-    /* RTL Context Menu */
-    // Initialize and configure the context menu
-    //SUB CONTEXT MENU
-    const subMenuRTL = new ContextMenu()
-    .addButton({
-        text: 'Sub Item 1',
-        icon: 'fa fa-home',
-        action: () => {
-            alert('Submenu Item 1 selected')
-        }
-    })
-        .addButton({
-            text: 'Sub Item 2',
-            icon: 'fa fa-user',
-            action: () => {
-                alert('Sub Item 2 selected')
-            }
-        });
-
-    //MAIN CONTEXT MENU
-    const menuRTL = new ContextMenu({
-        animationDuration: 200,
-        animationTiming: 'ease-out',
-        RTL: true,
-        menuWidth: '150',
-    });
-
-    menuRTL.addButton({
-        text: 'Edit',
-        icon: 'fa fa-edit',
-        action: () => {
-            alert('Edit selected')
-        }
-    })
-        .addSeparator()
-        .addButton({
-            text: 'Delete',
-            icon: 'fa fa-trash',
-            action: () => {
-                alert('Delete selected')
-            }
-        })
-        .addSeparator()
-        .addSubMenu({
-            text: 'Submenu',
-            icon: 'fa fa-cog',
-            subMenu: subMenuRTL
-        });
-
-    // Display the context menu on right-click within #content
-    document.getElementById('contentRTL').addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        menu.destroy();
-        menuRTL.showAt(e.clientX, e.clientY);
-    });
+  // Add context menu event listener
+  const demoArea = document.getElementById('demo-area');
+  demoArea.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); // Prevent default context menu
+    mainMenu.showAt(e.clientX, e.clientY);
+  });
 </script>
-
 </body>
 </html>

@@ -1,539 +1,700 @@
 class ContextMenu {
-    constructor(data = {}) {
-        this.buttons = [];
-        this.separators = [];
-        this.submenus = [];
-        this.nextPosition = 0;
-        this.id = this.getRandomId();
+    static ITEM_TYPES = {
+        BUTTON: 'button',
+        SEPARATOR: 'separator',
+        SUBMENU: 'submenu',
+        INPUT: 'input',
+        DROPDOWN: 'dropdown',
+        CHECKBOX: 'checkbox',
+        RADIO: 'radio'
+    };
 
-        //you can change these values for layout customization
-        this.style = {
-            initialYOffset: data.initialXOffset || 10, //pixels between the bottom of the element and the top of the first menu
-            initialXOffset: data.initialXOffset || 0, //pixels between the left of the element and the left of the first menu
-            menuWidth: data.menuWidth || 200, //pixels
-            RTL: data.RTL || false //right-to-left layout
-        }
+    static CLASSNAMES = {
+        BUTTON: 'context-menu-button',
+        SUBMENU: 'context-menu-submenu',
+        SEPARATOR: 'context-menu-separator',
+        MENU: 'context-menu',
+        INPUT: 'context-menu-input',
+        DROPDOWN: 'context-menu-dropdown',
+        CHECKBOX: 'context-menu-checkbox',
+        RADIO: 'context-menu-radio',
+        CONTAINER: 'context-menu-container',
+        ICON: 'context-menu-icon',
+        LABEL: 'context-menu-label'
+    };
 
-        // Animation configuration
-        this.animation = {
-            duration: data.animationDuration || 200, // milliseconds
-            timing: data.animationTiming || 'ease-out' // CSS timing function
+    constructor(options = {}) {
+        // Initialize with a more intuitive options object
+        this.options = {
+            width: options.width || 200,
+            animation: {
+                enabled: options.animation?.enabled ?? true,
+                duration: options.animation?.duration || 200,
+                timing: options.animation?.timing || 'ease-out'
+            },
+            position: {
+                xOffset: options.position?.xOffset || 0,
+                yOffset: options.position?.yOffset || 0
+            },
+            icons: options.icons || {
+                submenu: '❯'
+            },
+            style: {
+                backgroundColor: options.style?.backgroundColor || '#ffffff',
+                textColor: options.style?.textColor || '#333333',
+                backgroundHoverColor: options.style?.backgroundHoverColor || '#f0f0f0',
+                border: options.style?.border || 'rgba(0, 0, 0, 0.08)',
+                shadow: options.style?.shadow || '0 10px 25px rgba(0, 0, 0, 0.1)',
+                accent: options.style?.accent || '#3b82f6',
+                separator: options.style?.separator || 'rgba(0, 0, 0, 0.08)',
+            },
+            indentLevel: options.indentLevel || 0,
+            isRoot: options.isRoot === undefined,
+        };
+        this.items = [];
+        this.id = this._generateId();
+        this.installStyles();
+    }
+
+    // Simplified API for adding menu items
+    addItem(type, config) {
+        const item = {
+            id: this._generateId(),
+            type,
+            position: this.items.length,
+            ...config
         };
 
-        //event listeners
-        this.handleClick = this.click.bind(this);
-        this.handleContextMenu = this.contextMenu.bind(this);
-        this.handleMouseOver = this.mouseOver.bind(this);
-        this.handleKeyPress = this.keyPress.bind(this);
-
-        //fast initialization
-        if (data.buttons) {
-            this.buttons = data.buttons;
-        }
-        if (data.separators) {
-            this.separators = data.separators;
-        }
-        if (data.submenus) {
-            this.submenus = data.submenus;
+        if (item.type === ContextMenu.ITEM_TYPES.SUBMENU) {
+            item.submenu.options.indentLevel = (this.options.indentLevel || 0) + 1;
         }
 
+        // Validate based on type
+        this._validateItem(item);
+        this.items.push(item);
         return this;
     }
 
-    // Add class name constants
-    static CLASSNAMES = {
-        BUTTON: 'context-menu-button',
-        SUBMENU: 'submenu-button',
-        SEPARATOR: 'context-menu-separator',
-        MENU: 'context-menu',
-    };
+    // Fluent API methods for different item types
+    button(text, action, config = {}) {
+        return this.addItem(ContextMenu.ITEM_TYPES.BUTTON, {
+            text,
+            action,
+            icon: config.icon,
+            ficon: config.ficon,
+            disabled: config.disabled,
+            marked: config.marked
+        });
+    }
 
-    //initialation
-    addEventListeners() {
-        document.addEventListener('click', this.handleClick);
-        document.addEventListener('contextmenu', this.handleContextMenu);
-        document.addEventListener('mouseover', this.handleMouseOver);
-        document.addEventListener('keydown', this.handleKeyPress);
-        document.addEventListener('keyup', this.handleKeyPress);
+    input(label, config = {}) {
+        return this.addItem(ContextMenu.ITEM_TYPES.INPUT, {
+            label,
+            placeholder: config.placeholder,
+            value: config.value,
+            onChange: config.onChange,
+        });
+    }
+
+    dropdown(label, options, config = {}) {
+        return this.addItem(ContextMenu.ITEM_TYPES.DROPDOWN, {
+            label,
+            options,
+            value: config.value,
+            onChange: config.onChange,
+            multiSelect: config.multiSelect
+        });
+    }
+
+    checkbox(text, config = {}) {
+        return this.addItem(ContextMenu.ITEM_TYPES.CHECKBOX, {
+            text,
+            checked: config.checked || false,
+            onChange: config.onChange
+        });
+    }
+
+    radioGroup(name, options, config = {}) {
+        options.forEach(option => {
+            this.addItem(ContextMenu.ITEM_TYPES.RADIO, {
+                text: option.text,
+                value: option.value,
+                name,
+                checked: option.checked,
+                onChange: config.onChange
+            });
+        });
+        return this;
+    }
+
+    separator() {
+        return this.addItem(ContextMenu.ITEM_TYPES.SEPARATOR, {});
+    }
+
+    submenu(text, submenuBuilder, config = {}) {
+        const options = {
+            ...this.options, // Inherit options from parent
+            isRoot: false,
+            indentLevel: (this.options.indentLevel || 0) + 1, // Increment indent level
+        };
+
+        const submenu = new ContextMenu(options); // Create submenu with updated options
+        submenuBuilder(submenu);
+
+        const items = this.addItem(ContextMenu.ITEM_TYPES.SUBMENU, {
+            text,
+            submenu,
+            icon: config.icon,
+            ficon: config.ficon,
+        }).items;
+
+        items[items.length - 1].id = submenu.id;
+        return this;
+    }
+
+    // Show methods
+    showAt(x, y, autoAdd = true) {
+        const menu = this._render();
+
+        if (document.getElementById(this.id)) {
+            document.getElementById(this.id).remove();
+        }
+
+        autoAdd ? document.body.appendChild(menu) : null;
+        this._setupEventHandlers(menu);
+        this._positionMenu(menu, {x, y, position: 'fixed'});
+        this._animateIn(menu);
+        return menu;
     }
 
     destroy() {
-        document.removeEventListener('click', this.handleClick);
-        document.removeEventListener('contextmenu', this.handleContextMenu);
-        document.removeEventListener('mouseover', this.handleMouseOver);
-        document.removeEventListener('keydown', this.handleKeyPress);
-        document.removeEventListener('keyup', this.handleKeyPress);
-
-        const contextMenu = document.getElementById(this.id);
-        if (contextMenu) {
-            contextMenu.remove();
+        const menu = document.getElementById(this.id);
+        if (menu) {
+            menu.remove();
         }
+
+        // Remove event listeners
+        const {handleClick, handleContextMenu, handleMouseOver} = this._eventHandlers;
+        document.removeEventListener('click', handleClick);
+        document.removeEventListener('contextmenu', handleContextMenu);
+        document.removeEventListener('mouseover', handleMouseOver);
+
+
+        // Clean up references
+        this.items = [];
+        this._eventHandlers = {};
+
+        return this;
     }
 
-    //event listeners
-    click(e) {
-        if (e.target.classList.contains(ContextMenu.CLASSNAMES.BUTTON)) {
-            const button = this.buttons.find(b => b.id == e.target.id);
-            if (button) {
-                button.action();
+//    /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
+//    |                                                  PRIVATE METHODS                                                  |
+//    \___________________________________________________________________________________________________________________/
+
+    // Private methods
+    _setupEventHandlers(menu) {
+
+        //event listeners
+        const handleClick = (e) => {
+            if (e.target.classList.contains(ContextMenu.CLASSNAMES.BUTTON)) {
+                const button = this.items.find(item => item.id === e.target.id);
+                if (button) {
+                    button.action();
+                }
+            }
+
+            if (!e.target.closest('.' + ContextMenu.CLASSNAMES.MENU)) {
+                const contextMenu = document.getElementById(this.id);
+                if (contextMenu) {
+                    contextMenu.remove();
+                }
             }
         }
 
-        if (!e.target.closest('.' + ContextMenu.CLASSNAMES.MENU)) {
-            const contextMenu = document.getElementById(this.id);
-            if (contextMenu) {
-                contextMenu.remove();
+        const handleMouseOver = (e) => {
+            if (e.target.classList.contains(ContextMenu.CLASSNAMES.SUBMENU)) {
+                const submenu = this.items.find(item => item.id === e.target.dataset.submenuId);
+
+                if (submenu) {
+                    const existingSubmenu = e.target.parentElement.querySelector('#' + submenu.submenu.id);
+                    if (existingSubmenu) return;
+
+                    const htmlElement = submenu.submenu._render();
+                    submenu.submenu._setupEventHandlers(htmlElement);
+                    submenu.submenu._positionMenu(htmlElement, {
+                        x: e.target.getBoundingClientRect().right,
+                        y: e.target.getBoundingClientRect().top
+                    });
+
+                    htmlElement.style.position = 'absolute';
+                    htmlElement.style.left = this.options.width + 'px';
+                    htmlElement.style.top = e.target.getBoundingClientRect().top - e.target.parentElement.getBoundingClientRect().top + 'px';
+
+                    e.target.parentElement.appendChild(htmlElement);
+
+                    // Add event listeners to prevent premature removal
+                    htmlElement.addEventListener('mouseleave', handleMouseLeave);
+                    e.target.addEventListener('mouseleave', handleMouseLeave);
+                }
             }
-        }
-    }
+        };
 
-    contextMenu(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-    }
+        const handleMouseLeave = (event) => {
+            const target = event.target;
 
-    mouseOver(e) {
-        if (e.target.classList.contains(ContextMenu.CLASSNAMES.SUBMENU)) {
-            const submenu = this.submenus.find(s => s.subMenu.id === e.target.getAttribute('data-submenu'));
-            if (!submenu || document.getElementById(submenu.subMenu.id)) return; //if no item is found or the submenu is already open, return
-
-            if (submenu) {
-                // Hide other submenus at the same level
-                const parentMenu = e.target.closest('.' + ContextMenu.CLASSNAMES.MENU);
-                const siblingSubmenus = parentMenu.querySelectorAll('.' + ContextMenu.CLASSNAMES.MENU);
-                siblingSubmenus.forEach(menu => {
-                    if (!menu.contains(e.target)) {
-                        menu.remove();
-                    }
-                });
-
-                const subMenu = submenu.subMenu.show(e.target, false, true);
-                if (!subMenu) return;
-
-                if (!this.style.RTL)
-                 subMenu.style.left = `${e.target.getBoundingClientRect().right}px`;
-                else
-                    subMenu.style.right = `${e.target.getBoundingClientRect().left}px`;
-
-                subMenu.style.top = `${e.target.getBoundingClientRect().top}px`;
-                subMenu.style.display = 'block';
-
-                e.target.parentElement.append(subMenu);
-
-                e.troughTab ? subMenu.querySelector('.' + ContextMenu.CLASSNAMES.BUTTON).focus() : null;
-
-                // Add mouseout handler to the submenu
-                const handleMouseLeave = (event) => {
-                    const submenuEl = document.getElementById(subMenu.id);
-                    const relatedTarget = event.relatedTarget;
-
-                    if (!submenuEl) return;
-
-                    // Check if mouse moved to the parent button or the submenu itself
-                    if (!submenuEl.contains(relatedTarget) &&
-                        !e.target.contains(relatedTarget) &&
-                        relatedTarget !== e.target) {
-                        submenuEl.remove();
-                    }
-                };
-
-                subMenu.addEventListener('mouseleave', handleMouseLeave);
-                e.target.addEventListener('mouseleave', handleMouseLeave);
-            }
-        }
-    }
-
-    //don't allow a button to be pressed when the keystroke just opened a submenu
-    keyPress(e) {
-        //first check if the active element is a button or a submenu
-        if (!document.activeElement) return;
-        if (!document.activeElement.classList.contains(ContextMenu.CLASSNAMES.BUTTON) &&
-            !document.activeElement.classList.contains(ContextMenu.CLASSNAMES.SUBMENU)) return;
-
-
-        if (this.isKeyDown == e.type) return;
-        this.isKeyDown = e.type;
-        if (e.type === 'keyup') return;
-
-        if (e.key === 'Escape') {
-            const contextMenu = document.getElementById(this.id);
-            if (contextMenu) {
-                contextMenu.remove();
-            }
-        }
-
-        if (e.key === 'Enter' || e.key === ' ' || (e.key === 'ArrowRight' && !this.style.RTL) || (e.key === 'ArrowLeft' && this.style.RTL)) {
-            const focused = document.activeElement;
-            if (focused.classList.contains(ContextMenu.CLASSNAMES.SUBMENU)
-                && focused.classList.contains(ContextMenu.CLASSNAMES.BUTTON)) {
-                this.mouseOver({target: focused, troughTab: true});
-                e.preventDefault();
+            if (target.className === ContextMenu.CLASSNAMES.MENU) {
+                target.remove();
                 return;
             }
-        }
 
-        //or if the current focused element is the top-most child and shift-tab is pressed
-        if (((e.key === 'ArrowLeft') && !this.style.RTL) || ((e.key === 'ArrowRight') && this.style.RTL)) {
-            if (document.activeElement.parentElement.id !== this.id) return;
-            const id = document.activeElement.parentElement.id;
-            const submenu = document.querySelector(`[data-submenu="${id}"]`);
-            if (submenu) {
-                submenu.focus();
+            // Schedule submenu removal only after verifying mouse is no longer over button or submenu
+            const submenu = document.getElementById(target.dataset?.submenuId);
+            const isMouseOverButton = target.matches(':hover');
+            const isMouseOverSubmenu = submenu?.matches(':hover');
+
+            if (!isMouseOverButton && !isMouseOverSubmenu) {
+                submenu?.remove();
             }
-        }
-
-        //with arrow up and down, get the previous or next CLASSES.BUTTON element
-        if (e.key === 'ArrowDown' && this.isRoot) {
-            let focused = document.activeElement;
-            if (!focused) return;
-
-            focused = focused.nextElementSibling;
-            while (!focused.classList.contains(ContextMenu.CLASSNAMES.BUTTON) && focused.nextElementSibling) {
-                focused = focused.nextElementSibling;
-            }
-
-            if (focused) {
-                focused.focus();
-            }
-
-            //any child of the parent of this element that is a submenu, remove it
-            const parent = focused.parentElement;
-            const submenus = parent.querySelectorAll('.' + ContextMenu.CLASSNAMES.MENU);
-            submenus.forEach(menu => menu.remove());
-        }
-
-        if (e.key === 'ArrowUp' && this.isRoot) {
-            let focused = document.activeElement;
-            if (!focused) return;
-
-            focused = focused.previousElementSibling;
-            while (!focused.classList.contains(ContextMenu.CLASSNAMES.BUTTON) && focused.previousElementSibling) {
-                focused = focused.previousElementSibling;
-            }
-
-            if (focused) {
-                focused.focus();
-            }
-
-            //any child of the parent of this element that is a submenu, remove it
-            const parent = focused.parentElement;
-            const submenus = parent.querySelectorAll('.' + ContextMenu.CLASSNAMES.MENU);
-            submenus.forEach(menu => menu.remove());
-        }
-    }
-
-    // The rest of the methods remain the same
-    addButton(button) {
-        if (!button || typeof button !== 'object') {
-            throw new Error('Button must be an object');
-        }
-        if (!button.text || typeof button.text !== 'string') {
-            throw new Error('Button must have a text property');
-        }
-        if (!button.action || typeof button.action !== 'function') {
-            throw new Error('Button must have an action function');
-        }
-
-        button.position = this.nextPosition++;
-        button.id = this.getRandomId();
-        this.buttons.push(button);
-        return this;
-    }
-
-    addSeparator() {
-        this.separators.push({position: this.nextPosition++, id: Math.random().toString(36).substring(7)});
-        return this;
-    }
-
-    addSubMenu(submenu) {
-        if (!submenu || typeof submenu !== 'object') {
-            throw new Error('Submenu must be an object');
-        }
-        if (!submenu.text || typeof submenu.text !== 'string') {
-            throw new Error('Submenu must have a text property');
-        }
-        if (!submenu.subMenu || !(submenu.subMenu instanceof ContextMenu)) {
-            throw new Error('Submenu must have a subMenu property that is an instance of ContextMenu');
-        }
-        submenu.position = this.nextPosition++;
-        submenu.id = this.getRandomId();
-        submenu.subMenu.style = this.style;
-        this.submenus.push(submenu);
-        return this;
-    }
-
-    showAt(x, y) {
-        const existingContextMenu = document.getElementById(this.id);
-        if (existingContextMenu) {
-            return;
-        }
-
-        let contextMenu = this.render();
-
-        this.addEventListeners();
-
-        document.body.appendChild(contextMenu);
-
-        contextMenu.style.left = `${x - 5}px`;
-        contextMenu.style.top = `${y - 5}px`;
-        contextMenu.style.position = 'fixed';
-        if (this.animation.duration !== 0) {
-            contextMenu.style.transition = `opacity ${this.animation.duration}ms ${this.animation.timing}`;
-
-            requestAnimationFrame(() => {
-                contextMenu.style.opacity = 1;
-            });
-        }
-
-        this.isRoot = true;
-
-        contextMenu.querySelectorAll('.' + ContextMenu.CLASSNAMES.BUTTON).forEach(_button => {
-            const id = _button.id;
-            _button.addEventListener('click', () => {
-                const button = this.buttons.find(b => b.position == id);
-                if (button) {
-                    button.action();
-                }
-            });
-        });
-
-        contextMenu.querySelector('.' + ContextMenu.CLASSNAMES.BUTTON).focus();
-
-        this.addEventListeners();
-
-        return contextMenu;
-    }
-
-    show(element, isRoot = true, dontAutoAdd = false) {
-        const existingContextMenu = document.getElementById(this.id);
-        if (existingContextMenu) {
-            return;
-        }
-
-        let contextMenu = this.render();
-
-        const calculatePosition = (element, isRoot) => {
-            const rect = element.getBoundingClientRect();
-            const viewport = {
-                width: window.innerWidth,
-                height: window.innerHeight
-            };
-
-            let left = 0;
-
-            if (!this.style.RTL) {
-                left = isRoot ?
-                    rect.left + this.style.initialXOffset :
-                    rect.right;
-            }
-            else {
-                left = isRoot ?
-                    rect.right - this.style.initialXOffset :
-                    rect.left;
-            }
-            let top = isRoot ?
-                rect.bottom + this.style.initialYOffset :
-                rect.top;
-
-            // Prevent menu from going off-screen
-            if (left + this.style.menuWidth > viewport.width) { // assuming 200px menu width
-                left = rect.left - this.style.menuWidth;
-            }
-
-            return { left, top };
         };
 
-        const position = calculatePosition(element, isRoot);
-        contextMenu.style.left = `${position.left}px`;
-        contextMenu.style.top = `${position.top}px`;
-        contextMenu.style.position = 'fixed';
-        if (this.animation.animationDuration !== 0) {
-            contextMenu.style.transition = `opacity ${this.animation.duration}ms ${this.animation.timing}`;
 
-            requestAnimationFrame(() => {
-                contextMenu.style.opacity = 1;
-            });
-        }
+        // Adds event listeners
+        menu.addEventListener('click', handleClick);
+        menu.addEventListener('mouseover', handleMouseOver);
+        //menu.addEventListener('mouseleave', handleMouseLeave);
 
-        if (!isRoot)
-            contextMenu.style.display = 'none'
-
-        this.isRoot = isRoot;
-
-        contextMenu.querySelectorAll('.' + ContextMenu.CLASSNAMES.BUTTON).forEach(_button => {
-            const id = _button.id;
-            _button.addEventListener('click', () => {
-                const button = this.buttons.find(b => b.position == id);
-                if (button) {
-                    button.action();
+        document.addEventListener('click', (e) => {
+            e.preventDefault();
+            //if the target doesn't have the class of the context menu, remove the context menu
+            if (!e.target.classList.contains(ContextMenu.CLASSNAMES.MENU)) {
+                const contextMenu = document.getElementById(this.id);
+                if (contextMenu) {
+                    contextMenu.remove();
                 }
-            });
+            }
         });
 
-        !dontAutoAdd && document.body.appendChild(contextMenu);
-
-        isRoot ? contextMenu.querySelector('.' + ContextMenu.CLASSNAMES.BUTTON).focus() : null;
-
-        this.addEventListeners();
-
-        return contextMenu;
+        // Clean up references on destroy
+        this._eventHandlers = {click: handleClick, handleMouseOver, handleMouseLeave};
     }
 
-    render() {
-        const buttonHTML = (icon, text, id) => {
-            var button = document.createElement('button');
-            button.classList.add(ContextMenu.CLASSNAMES.BUTTON);
-            button.id = id;
-            button.setAttribute('role', 'menuitem');
-            button.setAttribute('aria-label', text);
-            button.style.width = `${this.style.menuWidth}px`;
+    //sorry for the bad looking code :(
+    _validateItem(item) {
+        const validTypes = Object.values(ContextMenu.ITEM_TYPES);
 
-            var i = undefined;
+        if (!item.type || !validTypes.includes(item.type)) throw new Error(`Invalid item type: ${item.type}. Allowed types are: ${validTypes.join(', ')}`);
 
-            if (icon) {
-                i = document.createElement('i');
-                i.className += " " + icon;
-                i.setAttribute('aria-hidden', 'true');
-            }
-
-            var span = document.createElement('span');
-            span.innerText = text;
-
-            if (!this.style.RTL) {
-                if (i){
-                    i.style.marginRight = 'var(--spacing)';
-                    button.appendChild(i);
-                }
-
-                button.style.justifyContent = 'flex-start';
-                button.appendChild(span);
-            }
-            else {
-                button.style.justifyContent = 'flex-end';
-                button.appendChild(span);
-                if (i) {
-                    i.style.marginLeft = 'var(--spacing)';
-                    button.appendChild(i);
-                }
-            }
-
-            return button;
+        switch (item.type) {
+            case ContextMenu.ITEM_TYPES.BUTTON:
+                if (!item.text || typeof item.text !== 'string') throw new Error('Button item must have a "text" property of type string.');
+                if (item.action && typeof item.action !== 'function') throw new Error('Button item action must be a function.');
+                break;
+            case ContextMenu.ITEM_TYPES.SEPARATOR:
+                break;
+            case ContextMenu.ITEM_TYPES.SUBMENU:
+                if (!item.submenu || !(item.submenu instanceof ContextMenu)) throw new Error('Submenu item must have a "submenu" property that is an instance of ContextMenu.');
+                break;
+            case ContextMenu.ITEM_TYPES.INPUT:
+                if (!item.label || typeof item.label !== 'string') throw new Error('Input item must have a "label" property of type string.');
+                break;
+            case ContextMenu.ITEM_TYPES.DROPDOWN:
+                if (!item.label || typeof item.label !== 'string') throw new Error('Dropdown item must have a "label" property of type string.');
+                if (!Array.isArray(item.options) || item.options.length === 0) throw new Error('Dropdown item must have a non-empty "options" array.');
+                break;
+            case ContextMenu.ITEM_TYPES.CHECKBOX:
+                if (!item.text || typeof item.text !== 'string') throw new Error('Checkbox item must have a "text" property of type string.');
+                if (typeof item.checked !== 'boolean') throw new Error('Checkbox item must have a "checked" property of type boolean.');
+                break;
+            case ContextMenu.ITEM_TYPES.RADIO:
+                if (!item.text || typeof item.text !== 'string') throw new Error('Radio item must have a "text" property of type string.');
+                if (!item.name || typeof item.name !== 'string') throw new Error('Radio item must have a "name" property of type string.');
+                break;
+            default:
+                throw new Error(`Unhandled item type: ${item.type}`);
         }
+    }
 
-        const separatorHTML = (id) => {
-            var separator = document.createElement('div');
-            separator.classList.add(ContextMenu.CLASSNAMES.SEPARATOR);
-            separator.id = id;
-            return separator;
-        }
+    _generateId() {
+        return '_' + Math.random().toString(36).substring(2, 9);
+    }
 
-        const submenuHTML = (icon, text, id, submenuId) => {
-            var button = document.createElement('button');
-            button.classList.add(ContextMenu.CLASSNAMES.SUBMENU);
-            button.classList.add(ContextMenu.CLASSNAMES.BUTTON);
-            button.id = id;
-            button.setAttribute('role', 'menuitem');
-            button.setAttribute('aria-haspopup', 'true');
-            button.setAttribute('aria-label', text);
-            button.setAttribute('data-submenu', submenuId);
-            button.style.width = `${this.style.menuWidth}px`;
+    _render() {
+        const menuContainer = document.createElement('div');
+        menuContainer.classList.add(ContextMenu.CLASSNAMES.MENU);
+        menuContainer.id = this.id;
+        menuContainer.setAttribute('role', 'menu');
+        menuContainer.setAttribute('aria-orientation', 'vertical');
+        menuContainer.style.width = `${this.options.width}px`;
 
+        // Set the indentation level as a data attribute
+        menuContainer.dataset.indent = this.options.indentLevel;
 
-            var i = undefined;
+        this.items.forEach(item => {
+            let element;
 
-            if (icon) {
-                i = document.createElement('i');
-                i.className += " " + icon;
-                i.setAttribute('aria-hidden', 'true');
-            }
-
-            var subMenuIcon = document.createElement('span');
-            subMenuIcon.innerText = this.style.RTL ? '❮' : '❯';
-
-
-            var span = document.createElement('span');
-            span.innerText = text;
-
-            if (!this.style.RTL) {
-                if (i){
-                    i.style.marginRight = 'var(--spacing)';
-                    button.appendChild(i);
-                }
-
-                button.style.justifyContent = 'flex-start';
-                button.appendChild(span);
-
-                subMenuIcon.style.marginLeft = 'auto';
-                button.appendChild(subMenuIcon);
-            }
-            else {
-                subMenuIcon.style.marginRight = 'auto';
-                button.appendChild(subMenuIcon);
-
-                button.style.justifyContent = 'flex-end';
-                button.appendChild(span);
-                if (i) {
-                    i.style.marginLeft = 'var(--spacing)';
-                    button.appendChild(i);
-                }
-            }
-
-            return button;
-        }
-
-
-        const items = this.buttons.map(button => ({type: 'button', ...button}))
-            .concat(this.separators.map(sep => ({type: 'separator', ...sep})))
-            .concat(this.submenus.map(submenu => ({type: 'submenu', ...submenu})))
-            .sort((a, b) => a.position - b.position);
-
-        let contextMenu = document.createElement('div');
-        contextMenu.classList.add(ContextMenu.CLASSNAMES.MENU);
-        contextMenu.id = this.id;
-        contextMenu.setAttribute('role', 'menu');
-        contextMenu.setAttribute('aria-orientation', 'vertical');
-        contextMenu.setAttribute('tabindex', '0');
-        contextMenu.style.width = `${this.style.menuWidth}px`;
-
-        items.forEach(item => {
             switch (item.type) {
-                case 'button':
-                    contextMenu.append(buttonHTML(item.icon, item.text, item.id));
+                case ContextMenu.ITEM_TYPES.BUTTON:
+                    element = this._createButton(item);
                     break;
-                case 'separator':
-                    contextMenu.append(separatorHTML(item.id));
+                case ContextMenu.ITEM_TYPES.SEPARATOR:
+                    element = this._createSeparator();
                     break;
-                case 'submenu': {
-                    contextMenu.append(submenuHTML(item.icon, item.text, item.id, item.subMenu.id));
+                case ContextMenu.ITEM_TYPES.SUBMENU:
+                    element = this._createSubmenu(item);
                     break;
-                }
+                case ContextMenu.ITEM_TYPES.INPUT:
+                    element = this._createInput(item);
+                    break;
+                case ContextMenu.ITEM_TYPES.DROPDOWN:
+                    element = this._createDropdown(item);
+                    break;
+                case ContextMenu.ITEM_TYPES.CHECKBOX:
+                    element = this._createCheckbox(item);
+                    break;
+                case ContextMenu.ITEM_TYPES.RADIO:
+                    element = this._createRadio(item);
+                    break;
+                default:
+                    console.warn(`Unknown item type: ${item.type}`);
+            }
+
+            if (element) {
+                menuContainer.appendChild(element);
             }
         });
 
-        return contextMenu;
+        return menuContainer;
     }
 
-    getRandomId() {
-        let a = (Math.random() * 2 ** 32) >>> 0;
-        a |= 0;
-        a = a + 0x9e3779b9 | 0;
-        let t = a ^ a >>> 16;
-        t = Math.imul(t, 0x21f0aaad);
-        t = t ^ t >>> 15;
-        t = Math.imul(t, 0x735a2d97);
-        return (((t = t ^ t >>> 15) >>> 0) / 4294967296).toString(36).substring(2);
+    _createButton(item) {
+        const button = document.createElement('button');
+        button.classList.add(ContextMenu.CLASSNAMES.BUTTON);
+        button.id = item.id;
+        button.innerText = item.text;
+        button.disabled = item.disabled || false;
+        button.dataset.marked = item.marked || false;
+        //button.onclick = item.action;
+
+        if (item.icon) {
+            const icon = document.createElement('span');
+            icon.innerText = item.icon;
+            button.prepend(icon);
+        }
+
+        if (item.ficon) {
+            const ficon = document.createElement('i');
+            ficon.className = item.ficon;
+            button.append(ficon);
+        }
+
+        return button;
     }
 
-    get data() {
-        return {
-            buttons: this.buttons,
-            separators: this.separators,
-            submenus: this.submenus
-        };
+    _createSeparator() {
+        const separator = document.createElement('div');
+        separator.classList.add(ContextMenu.CLASSNAMES.SEPARATOR);
+        return separator;
     }
 
-    get json() {
-        return JSON.stringify(this.data);
+    _createSubmenu(item) {
+        const submenuButton = document.createElement('button');
+        submenuButton.classList.add(ContextMenu.CLASSNAMES.SUBMENU);
+        submenuButton.innerText = item.text;
+        submenuButton.setAttribute('aria-haspopup', 'true');
+        submenuButton.dataset.submenuId = item.id;
+
+        if (item.icon) {
+            const icon = document.createElement('span');
+            icon.innerText = item.icon;
+            submenuButton.prepend(icon);
+        }
+
+        const moreIcon = document.createElement('span');
+        moreIcon.innerText = this.options.icons.submenu;
+        moreIcon.style.marginLeft = 'auto';
+        submenuButton.append(moreIcon);
+
+        if (item.ficon) {
+            const ficon = document.createElement('i');
+            ficon.className = item.ficon;
+            submenuButton.append(ficon);
+        }
+
+        return submenuButton;
+    }
+
+    _createInput(item) {
+        const inputContainer = document.createElement('div');
+        inputContainer.classList.add(ContextMenu.CLASSNAMES.INPUT);
+
+        const input = document.createElement('input');
+        input.type = item.type || 'text';
+        input.placeholder = item.placeholder || '';
+        input.value = item.value || '';
+        input.oninput = (e) => item.onChange?.(e.target.value);
+
+        inputContainer.appendChild(input);
+        return inputContainer;
+    }
+
+    _createDropdown(item) {
+        const select = document.createElement('select');
+        select.classList.add(ContextMenu.CLASSNAMES.DROPDOWN);
+
+        item.options.forEach(option => {
+            const opt = document.createElement('option');
+            opt.value = option.value;
+            opt.textContent = option.label;
+            if (option.value === item.value) {
+                opt.selected = true;
+            }
+            select.appendChild(opt);
+        });
+
+        select.onchange = (e) => item.onChange?.(e.target.value);
+        return select;
+    }
+
+    _createCheckbox(item) {
+        const label = document.createElement('label');
+        label.classList.add(ContextMenu.CLASSNAMES.CHECKBOX);
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = item.checked || false;
+        checkbox.onchange = (e) => item.onChange?.(e.target.checked);
+
+        const span = document.createElement('span');
+        span.textContent = item.text;
+
+        label.appendChild(checkbox);
+        label.appendChild(span);
+        return label;
+    }
+
+    _createRadio(item) {
+        const label = document.createElement('label');
+        label.classList.add(ContextMenu.CLASSNAMES.RADIO);
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = item.name;
+        radio.value = item.value;
+        radio.checked = item.checked || false;
+        radio.onchange = (e) => item.onChange?.(e.target.value);
+
+        const span = document.createElement('span');
+        span.textContent = item.text;
+
+        label.appendChild(radio);
+        label.appendChild(span);
+        return label;
+    }
+
+    _positionMenu(menu, position) {
+        const {x, y} = position;
+        const {xOffset, yOffset} = this.options.position;
+
+        // Apply styles to position the menu
+        menu.style.left = `${x + xOffset || this.options.width}px`;
+        menu.style.top = `${y + yOffset}px`;
+        menu.style.position = 'fixed';
+    }
+
+
+    _animateIn(menu) {
+        if (!this.options.animation.enabled) return;
+
+        // Apply initial styles for animation
+        menu.style.opacity = 0;
+        menu.style.transform = 'scale(0.9)';
+        menu.style.transition = `opacity ${this.options.animation.duration}ms ${this.options.animation.timing}, 
+                             transform ${this.options.animation.duration}ms ${this.options.animation.timing}`;
+
+        // Trigger the animation
+        requestAnimationFrame(() => {
+            menu.style.opacity = 1;
+            menu.style.transform = 'scale(1)';
+        });
+    }
+
+    installStyles() {
+        if (document.getElementById('context-menu-styles')) return;
+
+        const styleElement = document.createElement('style');
+        styleElement.id = 'context-menu-styles';
+        styleElement.textContent = `
+:root {
+  --context-menu-bg: ` + (this.options.style.backgroundColor || '#ffffff') + `;
+  --context-menu-text: ` + (this.options.style.textColor || '#333333') + `;
+  --context-menu-hover-bg: ` + (this.options.style.backgroundHoverColor || '#f0f0f0') + `;
+  --context-menu-border: ` + (this.options.style.border || 'rgba(0, 0, 0, 0.08)') + `;
+  --context-menu-shadow: ` + (this.options.style.shadow || '0 10px 25px rgba(0, 0, 0, 0.1)') + `;
+  --context-menu-accent: ` + (this.options.style.accent || '#3b82f6') + `;
+  --context-menu-separator: ` + (this.options.style.separator || 'rgba(0, 0, 0, 0.08)') + `;
+}
+
+.context-menu {
+  background: var(--context-menu-bg);
+  border: 1px solid var(--context-menu-border);
+  border-radius: 8px;
+  box-shadow: var(--context-menu-shadow);
+  padding: 8px 0;
+  min-width: 220px;
+  z-index: 1000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  color: var(--context-menu-text);
+}
+
+.context-menu-button,
+.context-menu-submenu {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--context-menu-text);
+  transition: 
+    background-color 0.15s ease,
+    color 0.15s ease;
+  position: relative;
+  gap: 10px;
+}
+
+.context-menu-button:disabled {
+  color: rgba(26, 26, 26, 0.4);
+  cursor: not-allowed;
+}
+
+.context-menu-button[data-marked="true"] {
+    font-weight: bold;
+    background-color: var(--context-menu-accent);
+    color: white;
+    border-radius: 4px;
+    border: 1px solid var(--context-menu-accent);
+}
+
+.context-menu-button[data-marked="true"]:hover {
+    background-color: var(--context-menu-accent);
+    color: white;
+}
+
+.context-menu-button span,
+.context-menu-submenu span {
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.context-menu-button:hover,
+.context-menu-submenu:hover {
+  background-color: var(--context-menu-hover-bg);
+}
+
+.context-menu-button:focus,
+.context-menu-submenu:focus {
+  outline: none;
+  background-color: var(--context-menu-hover-bg);
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: var(--context-menu-separator);
+  margin: 8px 0;
+}
+
+.context-menu-input {
+  padding: 8px 16px;
+}
+
+.context-menu-input input {
+  width: calc(100% - 16px);
+  padding: 8px;
+  border: 1px solid var(--context-menu-border);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #f9fafb;
+  transition: 
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.context-menu-input input:focus {
+  outline: none;
+  border-color: var(--context-menu-accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.context-menu-dropdown {
+  width: calc(100% - 32px);
+  margin: 8px 16px;
+  padding: 8px;
+  border: 1px solid var(--context-menu-border);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #f9fafb;
+  transition: 
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.context-menu-checkbox,
+.context-menu-radio {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.context-menu-checkbox:hover,
+.context-menu-radio:hover {
+  background-color: var(--context-menu-hover-bg);
+}
+
+.context-menu-checkbox input,
+.context-menu-radio input {
+  margin-right: 10px;
+  accent-color: var(--context-menu-accent);
+}
+
+.context-menu-submenu {
+  position: relative;
+}
+
+/* Animation */
+@keyframes contextMenuSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.context-menu {
+  animation: contextMenuSlideIn 0.2s ease-out;
+  transform-origin: top center;
+}
+
+/* Focus and Accessibility */
+.context-menu:focus {
+  outline: none;
+}
+
+.context-menu-button:focus-visible,
+.context-menu-submenu:focus-visible {
+  outline: 2px solid var(--context-menu-accent);
+  outline-offset: -2px;
+}
+`;
+        document.head.appendChild(styleElement);
     }
 }
