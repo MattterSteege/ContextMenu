@@ -9,7 +9,6 @@
       font-family: Arial, sans-serif;
       display: flex;
       justify-content: center;
-      align-items: center;
       height: 100vh;
       margin: 0;
       background-color: #f0f0f0;
@@ -25,7 +24,7 @@
       cursor: context-menu;
     }
   </style>
-  <script src="dist/ContextMenu.js"></script>
+  <script src="ContextMenu.js"></script>
 </head>
 <body>
 <div id="demo-area">
@@ -40,7 +39,10 @@
       accent: '#3b82f6',
       backgroundColor: '#ffffff',
       textColor: '#333333'
-    }
+    },
+    closeOnClick: true,
+    closeOnOutsideClick: true,
+    closeOnMouseLeave: false,
   });
 
   // Build the context menu with multiple submenus
@@ -74,6 +76,41 @@
                       value: "100",
                       onChange: (value) => alert(`Zoom: ${value}`)
                     })
+                    .input("Search", {
+                      placeholder: "Search...",
+                      onChange: (value) => alert(`Search: ${value}`)
+                    })
+                    .separator()
+                    .radioGroup("Theme", [
+                      { value: "light", label: "Light" },
+                      { value: "dark", label: "Dark" }
+                    ], {
+                      value: "light",
+                      onChange: (value) => alert(`Theme: ${value}`)
+                    })
+                    //instantiate like a dropdown
+                    .searchSelect("Search", [
+                      { value: "apple", label: "Apple" },
+                      { value: "banana", label: "Banana" },
+                      { value: "cherry", label: "Cherry" },
+                        { value: "date", label: "Date" },
+                        { value: "elderberry", label: "Elderberry" },
+                        { value: "fig", label: "Fig" },
+                        { value: "grape", label: "Grape" },
+                        { value: "honeydew", label: "Honeydew" },
+                        { value: "kiwi", label: "Kiwi" },
+                        { value: "lemon", label: "Lemon" },
+                        { value: "mango", label: "Mango" },
+                        { value: "nectarine", label: "Nectarine" },
+                        { value: "orange", label: "Orange" },
+                        { value: "papaya", label: "Papaya" },
+                        { value: "quince", label: "Quince" },
+                        { value: "raspberry", label: "Raspberry" },
+                        { value: "strawberry", label: "Strawberry" },
+                        { value: "tangerine", label: "Tangerine" }
+                    ], {
+                      onChange: (value) => alert(`Selected: ${value}`)
+                    });
           })
           .separator()
           .button("Help", () => alert("Help clicked"));

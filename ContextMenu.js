@@ -6,7 +6,8 @@ class ContextMenu {
         INPUT: 'input',
         DROPDOWN: 'dropdown',
         CHECKBOX: 'checkbox',
-        RADIO: 'radio'
+        RADIO: 'radio',
+        SEARCH_SELECT: 'search-select',
     };
 
     static CLASSNAMES = {
@@ -19,6 +20,7 @@ class ContextMenu {
         CHECKBOX: 'context-menu-checkbox',
         RADIO: 'context-menu-radio',
         CONTAINER: 'context-menu-container',
+        SEARCH_SELECT: 'context-menu-search-select',
         ICON: 'context-menu-icon',
         LABEL: 'context-menu-label'
     };
@@ -50,6 +52,9 @@ class ContextMenu {
             },
             indentLevel: options.indentLevel || 0,
             isRoot: options.isRoot === undefined,
+            closeOnClick: options.closeOnClick,
+            closeOnOutsideClick: options.closeOnOutsideClick,
+            closeOnMouseLeave: options.closeOnMouseLeave
         };
         this.items = [];
         this.id = this._generateId();
@@ -117,7 +122,7 @@ class ContextMenu {
     radioGroup(name, options, config = {}) {
         options.forEach(option => {
             this.addItem(ContextMenu.ITEM_TYPES.RADIO, {
-                text: option.text,
+                label: option.label,
                 value: option.value,
                 name,
                 checked: option.checked,
@@ -152,6 +157,15 @@ class ContextMenu {
         return this;
     }
 
+    searchSelect(label, options, config = {}) {
+        return this.addItem(ContextMenu.ITEM_TYPES.SEARCH_SELECT, {
+            label,
+            options,
+            value: config.value,
+            onChange: config.onChange,
+        });
+    }
+
     // Show methods
     showAt(x, y, autoAdd = true) {
         const menu = this._render();
@@ -169,27 +183,27 @@ class ContextMenu {
 
     destroy() {
         // Existing cleanup
-        const menu = document.getElementById(this.id);
+        const menu = document.querySelector('body > .' + ContextMenu.CLASSNAMES.MENU);
         menu && menu.remove();
 
         // Remove event listeners
-        const {handleClick, handleContextMenu, handleMouseOver} = this._eventHandlers;
-        document.removeEventListener("click", handleClick);
-        document.removeEventListener("contextmenu", handleContextMenu);
-        document.removeEventListener("mouseover", handleMouseOver);
+        const {handleClick, handleContextMenu, handleMouseOver} = this._eventHandlers || {};
+        handleClick ? document.removeEventListener("click", handleClick) : null;
+        handleContextMenu ? document.removeEventListener("contextmenu", handleContextMenu) : null;
+        handleMouseOver ? document.removeEventListener("mouseover", handleMouseOver) : null;
 
-        // Recursively destroy submenus
-        this.items.forEach(item => {
-            if (item.type === ContextMenu.ITEM_TYPES.SUBMENU && item.submenu) {
-                item.submenu.destroy();
-            }
-        });
+        // // Recursively destroy submenus
+        // this.items.forEach(item => {
+        //     if (item.type === ContextMenu.ITEM_TYPES.SUBMENU && item.submenu) {
+        //         item.submenu.destroy();
+        //     }
+        // });
 
         // Clear all references
-        this.items = [];
-        this._eventHandlers = {};
-        this.id = null;
-        this.options = null;
+        // this.items = [];
+        // this._eventHandlers = {};
+        // this.id = null;
+        // this.options = null;
 
         // If you want to make the instance unusable after destruction
         Object.freeze(this);
@@ -199,25 +213,29 @@ class ContextMenu {
 //    |                                                  PRIVATE METHODS                                                  |
 //    \___________________________________________________________________________________________________________________/
 
-    // Private methods
-    _setupEventHandlers(menu) {
-
-        //event listeners
+_setupEventHandlers(menu) {
         const handleClick = (e) => {
+            if (e.target.classList.contains(ContextMenu.CLASSNAMES.DROPDOWN) ||
+                e.target.classList.contains(ContextMenu.CLASSNAMES.INPUT) ||
+                e.target.classList.contains(ContextMenu.CLASSNAMES.CHECKBOX) ||
+                e.target.classList.contains(ContextMenu.CLASSNAMES.RADIO) ||
+                e.target.classList.contains(ContextMenu.CLASSNAMES.SEARCH_SELECT)) {
+                return;
+            }
+
             if (e.target.classList.contains(ContextMenu.CLASSNAMES.BUTTON)) {
                 const button = this.items.find(item => item.id === e.target.id);
                 if (button) {
                     button.action();
+                    this.destroy();
                 }
             }
 
             if (!e.target.closest('.' + ContextMenu.CLASSNAMES.MENU)) {
-                const contextMenu = document.getElementById(this.id);
-                if (contextMenu) {
-                    contextMenu.remove();
-                }
+                if (!this.options.closeOnOutsideClick) return;
+                this.destroy();
             }
-        }
+        };
 
         const handleMouseOver = (e) => {
             if (e.target.classList.contains(ContextMenu.CLASSNAMES.SUBMENU)) {
@@ -240,7 +258,6 @@ class ContextMenu {
 
                     e.target.parentElement.appendChild(htmlElement);
 
-                    // Add event listeners to prevent premature removal
                     htmlElement.addEventListener('mouseleave', handleMouseLeave);
                     e.target.addEventListener('mouseleave', handleMouseLeave);
                 }
@@ -248,6 +265,8 @@ class ContextMenu {
         };
 
         const handleMouseLeave = (event) => {
+            if (!this.options.closeOnMouseLeave) return;
+
             const target = event.target;
 
             if (target.className === ContextMenu.CLASSNAMES.MENU) {
@@ -255,7 +274,6 @@ class ContextMenu {
                 return;
             }
 
-            // Schedule submenu removal only after verifying mouse is no longer over button or submenu
             const submenu = document.getElementById(target.dataset?.submenuId);
             const isMouseOverButton = target.matches(':hover');
             const isMouseOverSubmenu = submenu?.matches(':hover');
@@ -266,24 +284,8 @@ class ContextMenu {
         };
 
 
-        // Adds event listeners
         menu.addEventListener('click', handleClick);
         menu.addEventListener('mouseover', handleMouseOver);
-        //menu.addEventListener('mouseleave', handleMouseLeave);
-
-        document.addEventListener('click', (e) => {
-            e.preventDefault();
-            //if the target doesn't have the class of the context menu, remove the context menu
-            if (!e.target.classList.contains(ContextMenu.CLASSNAMES.MENU)) {
-                const contextMenu = document.getElementById(this.id);
-                if (contextMenu) {
-                    contextMenu.remove();
-                }
-            }
-        });
-
-        // Clean up references on destroy
-        this._eventHandlers = {click: handleClick, handleMouseOver, handleMouseLeave};
     }
 
     //sorry for the bad looking code :(
@@ -314,8 +316,12 @@ class ContextMenu {
                 if (typeof item.checked !== 'boolean') throw new Error('Checkbox item must have a "checked" property of type boolean.');
                 break;
             case ContextMenu.ITEM_TYPES.RADIO:
-                if (!item.text || typeof item.text !== 'string') throw new Error('Radio item must have a "text" property of type string.');
+                if (!item.label || typeof item.label !== 'string') throw new Error('Radio item must have a "label" property of type string.');
                 if (!item.name || typeof item.name !== 'string') throw new Error('Radio item must have a "name" property of type string.');
+                break;
+            case ContextMenu.ITEM_TYPES.SEARCH_SELECT:
+                if (!item.label || typeof item.label !== 'string') throw new Error('SearchSelect item must have a "label" property of type string.');
+                if (!Array.isArray(item.options) || item.options.length === 0) throw new Error('SearchSelect item must have a non-empty "options" array.');
                 break;
             default:
                 throw new Error(`Unhandled item type: ${item.type}`);
@@ -361,6 +367,9 @@ class ContextMenu {
                     break;
                 case ContextMenu.ITEM_TYPES.RADIO:
                     element = this._createRadio(item);
+                    break;
+                case ContextMenu.ITEM_TYPES.SEARCH_SELECT:
+                    element = this._createSearchSelect(item);
                     break;
                 default:
                     console.warn(`Unknown item type: ${item.type}`);
@@ -492,11 +501,74 @@ class ContextMenu {
         radio.onchange = (e) => item.onChange?.(e.target.value);
 
         const span = document.createElement('span');
-        span.textContent = item.text;
+        span.textContent = item.label;
 
         label.appendChild(radio);
         label.appendChild(span);
         return label;
+    }
+
+    _createSearchSelect(item) {
+        //this is a scrollable list with selectable items (checkboxes)
+        //at the top there is a search input that filters the items (if the search input is not empty, then show everything)
+        const container = document.createElement('div');
+        container.classList.add(ContextMenu.CLASSNAMES.SEARCH_SELECT);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = item.label || '';
+
+        const list = document.createElement('div');
+        list.classList.add(ContextMenu.CLASSNAMES.SEARCH_SELECT + '-list');
+
+        //add select all option
+        const selectAll = document.createElement('label');
+        selectAll.classList.add(ContextMenu.CLASSNAMES.SEARCH_SELECT + '-select-all');
+        const selectAllCheckbox = document.createElement('input');
+        selectAllCheckbox.type = 'checkbox';
+        selectAllCheckbox.onchange = (e) => {
+            const checkboxes = list.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = e.target.checked;
+            });
+
+            //return an array of selected values
+            const selectedValues = Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+            item.onChange?.(selectedValues);
+        }
+        const selectAllLabel = document.createElement('span');
+        selectAllLabel.textContent = 'Select All';
+        selectAll.appendChild(selectAllCheckbox);
+        selectAll.appendChild(selectAllLabel);
+        list.appendChild(selectAll);
+
+        item.options.forEach(option => {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = option.value;
+            checkbox.checked = option.checked || false;
+            checkbox.onchange = (e) => {
+                //return an array of selected values
+                const selectedValues = Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+                item.onChange?.(selectedValues);
+            }
+
+            const label = document.createElement('label');
+            label.textContent = option.label;
+            label.appendChild(checkbox);
+            list.appendChild(label);
+        });
+        container.appendChild(input);
+        container.appendChild(list);
+        input.oninput = (e) => {
+            const searchValue = e.target.value.toLowerCase();
+            const items = list.querySelectorAll('label');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(searchValue) ? 'block' : 'none';
+            });
+        };
+        return container;
     }
 
     _positionMenu(menu, position) {
@@ -669,6 +741,61 @@ class ContextMenu {
 .context-menu-radio input {
   margin-right: 10px;
   accent-color: var(--context-menu-accent);
+}
+
+.context-menu-checkbox input:focus,
+.context-menu-radio input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+.context-menu-checkbox input:checked,
+.context-menu-radio input:checked {
+  background-color: var(--context-menu-accent);
+}
+
+.context-menu-search-select {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 16px;
+    }
+.context-menu-search-select input {
+    padding: 8px;
+    border: 1px solid var(--context-menu-border);
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #f9fafb;
+    transition: 
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+.context-menu-search-select input:focus {
+    outline: none;
+    border-color: var(--context-menu-accent);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+.context-menu-search-select-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+.context-menu-search-select-list label {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    justify-content: flex-end;
+}
+.context-menu-search-select-list label:hover {
+    background-color: var(--context-menu-hover-bg);
+}
+.context-menu-search-select-list input {
+    margin-right: 10px;
+    accent-color: var(--context-menu-accent);
+}
+.context-menu-search-select-list input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .context-menu-submenu {
