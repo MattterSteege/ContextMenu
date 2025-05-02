@@ -201,28 +201,23 @@ class ContextMenu {
         handleContextMenu ? document.removeEventListener("contextmenu", handleContextMenu) : null;
         handleMouseOver ? document.removeEventListener("mouseover", handleMouseOver) : null;
 
-        // // Recursively destroy submenus
-        // this.items.forEach(item => {
-        //     if (item.type === ContextMenu.ITEM_TYPES.SUBMENU && item.submenu) {
-        //         item.submenu.destroy();
-        //     }
-        // });
+        this?.clear();
+    }
 
-        // Clear all references
-        // this.items = [];
-        // this._eventHandlers = {};
-        // this.id = null;
-        // this.options = null;
-
-        // If you want to make the instance unusable after destruction
-        Object.freeze(this);
+    clear() {
+        // Clear all items
+        this.items = [];
+        const menu = document.getElementById(this.id);
+        if (menu) {
+            menu.innerHTML = '';
+        }
     }
 
 //    /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
 //    |                                                  PRIVATE METHODS                                                  |
 //    \___________________________________________________________________________________________________________________/
 
-_setupEventHandlers(menu) {
+    _setupEventHandlers(menu) {
         const handleClick = (e) => {
             if (e.target.classList.contains(ContextMenu.CLASSNAMES.DROPDOWN) ||
                 e.target.classList.contains(ContextMenu.CLASSNAMES.INPUT) ||
