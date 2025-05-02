@@ -49,12 +49,21 @@ class ContextMenu {
                 shadow: options.style?.shadow || '0 10px 25px rgba(0, 0, 0, 0.1)',
                 accent: options.style?.accent || '#3b82f6',
                 separator: options.style?.separator || 'rgba(0, 0, 0, 0.08)',
+
+                padding: options.style?.padding || '10px',
+                paddingHorizontal: options.style?.paddingHorizontal || '15px',
+                gap: options.style?.gap || '10px',
+                borderRadius: options.style?.borderRadius || '8px',
+                borderRadiusInput: options.style?.borderRadiusInput || '4px',
+                fontSize: options.style?.fontSize || '14px',
+                transition: options.style?.transition || '0.2s',
+                transitionFast: options.style?.transitionFast || '0.1s',
+                transitionInput: options.style?.transitionInput || '0.2s',
             },
             indentLevel: options.indentLevel || 0,
             isRoot: options.isRoot === undefined,
             closeOnClick: options.closeOnClick,
             closeOnOutsideClick: options.closeOnOutsideClick,
-            closeOnMouseLeave: options.closeOnMouseLeave
         };
         this.items = [];
         this.id = this._generateId();
@@ -265,8 +274,6 @@ _setupEventHandlers(menu) {
         };
 
         const handleMouseLeave = (event) => {
-            if (!this.options.closeOnMouseLeave) return;
-
             const target = event.target;
 
             if (target.className === ContextMenu.CLASSNAMES.MENU) {
@@ -286,6 +293,14 @@ _setupEventHandlers(menu) {
 
         menu.addEventListener('click', handleClick);
         menu.addEventListener('mouseover', handleMouseOver);
+        addEventListener('click', (e) => {
+            //if the element is not inside the menu, then destroy the menu
+            if (e.target.closest('.' + ContextMenu.CLASSNAMES.MENU)) return;
+
+            if (this.options.closeOnOutsideClick) {
+                this.destroy();
+            }
+        })
     }
 
     //sorry for the bad looking code :(
@@ -612,18 +627,29 @@ _setupEventHandlers(menu) {
   --context-menu-shadow: ` + (this.options.style.shadow || '0 10px 25px rgba(0, 0, 0, 0.1)') + `;
   --context-menu-accent: ` + (this.options.style.accent || '#3b82f6') + `;
   --context-menu-separator: ` + (this.options.style.separator || 'rgba(0, 0, 0, 0.08)') + `;
+  --padding: ` + (this.options.style.padding || '10px') + `;
+  --padding-horizontal: ` + (this.options.style.paddingHorizontal || '15px') + `;
+  --gap: ` + (this.options.style.gap || '10px') + `;
+  --border-radius: ` + (this.options.style.borderRadius || '8px') + `;
+  --border-radius-input: ` + (this.options.style.borderRadiusInput || '4px') + `;
+  --font-size: ` + (this.options.style.fontSize || '14px') + `;
+  --transition: ` + (this.options.style.transition || '0.2s') + ` ease;
+  --transition-fast: ` + (this.options.style.transitionFast || '0.1s') + ` ease;
+  --transition-input: ` + (this.options.style.transitionInput || '0.2s') + ` ease;
 }
 
 .context-menu {
   background: var(--context-menu-bg);
   border: 1px solid var(--context-menu-border);
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   box-shadow: var(--context-menu-shadow);
-  padding: 8px 0;
+  padding: var(--padding) 0;
   min-width: 220px;
   z-index: 1000;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   color: var(--context-menu-text);
+  animation: contextMenuSlideIn var(--transition-fast) forwards;
+  transform-origin: top center;
 }
 
 .context-menu-button,
@@ -631,18 +657,16 @@ _setupEventHandlers(menu) {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 10px 16px;
+  padding: calc(var(--padding) + 2px) var(--padding-horizontal);
   border: none;
   background: none;
-  font-size: 14px;
+  font-size: var(--font-size);
   text-align: left;
   cursor: pointer;
   color: var(--context-menu-text);
-  transition: 
-    background-color 0.15s ease,
-    color 0.15s ease;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
   position: relative;
-  gap: 10px;
+  gap: var(--gap);
 }
 
 .context-menu-button:disabled {
@@ -651,16 +675,16 @@ _setupEventHandlers(menu) {
 }
 
 .context-menu-button[data-marked="true"] {
-    font-weight: bold;
-    background-color: var(--context-menu-accent);
-    color: white;
-    border-radius: 4px;
-    border: 1px solid var(--context-menu-accent);
+  font-weight: bold;
+  background-color: var(--context-menu-accent);
+  color: white;
+  border-radius: calc(var(--border-radius) / 2);
+  border: 1px solid var(--context-menu-accent);
 }
 
 .context-menu-button[data-marked="true"]:hover {
-    background-color: var(--context-menu-accent);
-    color: white;
+  background-color: var(--context-menu-accent);
+  color: white;
 }
 
 .context-menu-button span,
@@ -684,23 +708,21 @@ _setupEventHandlers(menu) {
 .context-menu-separator {
   height: 1px;
   background-color: var(--context-menu-separator);
-  margin: 8px 0;
+  margin: var(--padding) 0;
 }
 
 .context-menu-input {
-  padding: 8px 16px;
+  padding: var(--padding) var(--padding-horizontal);
 }
 
 .context-menu-input input {
-  width: calc(100% - 16px);
-  padding: 8px;
+  width: calc(100% - var(--padding-horizontal));
+  padding: var(--padding);
   border: 1px solid var(--context-menu-border);
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: var(--border-radius-input);
+  font-size: var(--font-size);
   background-color: #f9fafb;
-  transition: 
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color var(--transition-input), box-shadow var(--transition-input);
 }
 
 .context-menu-input input:focus {
@@ -710,26 +732,24 @@ _setupEventHandlers(menu) {
 }
 
 .context-menu-dropdown {
-  width: calc(100% - 32px);
-  margin: 8px 16px;
-  padding: 8px;
+  width: calc(100% - calc(var(--padding-horizontal) * 2));
+  margin: var(--padding) var(--padding-horizontal);
+  padding: var(--padding);
   border: 1px solid var(--context-menu-border);
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: var(--border-radius-input);
+  font-size: var(--font-size);
   background-color: #f9fafb;
-  transition: 
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color var(--transition-input), box-shadow var(--transition-input);
 }
 
 .context-menu-checkbox,
 .context-menu-radio {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
-  font-size: 14px;
+  padding: calc(var(--padding) + 2px) var(--padding-horizontal);
+  font-size: var(--font-size);
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color var(--transition-fast);
 }
 
 .context-menu-checkbox:hover,
@@ -739,7 +759,7 @@ _setupEventHandlers(menu) {
 
 .context-menu-checkbox input,
 .context-menu-radio input {
-  margin-right: 10px;
+  margin-right: var(--gap);
   accent-color: var(--context-menu-accent);
 }
 
@@ -748,54 +768,60 @@ _setupEventHandlers(menu) {
   outline: none;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
+
 .context-menu-checkbox input:checked,
 .context-menu-radio input:checked {
   background-color: var(--context-menu-accent);
 }
 
 .context-menu-search-select {
-    display: flex;
-    flex-direction: column;
-    padding: 10px 16px;
-    }
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--padding) + 2px) var(--padding-horizontal);
+}
+
 .context-menu-search-select input {
-    padding: 8px;
-    border: 1px solid var(--context-menu-border);
-    border-radius: 6px;
-    font-size: 14px;
-    background-color: #f9fafb;
-    transition: 
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
+  padding: var(--padding);
+  border: 1px solid var(--context-menu-border);
+  border-radius: var(--border-radius-input);
+  font-size: var(--font-size);
+  background-color: #f9fafb;
+  transition: border-color var(--transition-input), box-shadow var(--transition-input);
 }
+
 .context-menu-search-select input:focus {
-    outline: none;
-    border-color: var(--context-menu-accent);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  outline: none;
+  border-color: var(--context-menu-accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
+
 .context-menu-search-select-list {
-    max-height: 200px;
-    overflow-y: auto;
-    margin-top: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: var(--padding);
 }
+
 .context-menu-search-select-list label {
-    display: flex;
-    flex-direction: row-reverse;
-    gap: 10px;
-    align-items: center;
-    padding: 8px 0;
-    justify-content: flex-end;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: var(--gap);
+  align-items: center;
+  padding: var(--padding) 0;
+  justify-content: flex-end;
 }
+
 .context-menu-search-select-list label:hover {
-    background-color: var(--context-menu-hover-bg);
+  background-color: var(--context-menu-hover-bg);
 }
+
 .context-menu-search-select-list input {
-    margin-right: 10px;
-    accent-color: var(--context-menu-accent);
+  margin-right: var(--gap);
+  accent-color: var(--context-menu-accent);
 }
+
 .context-menu-search-select-list input:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .context-menu-submenu {
@@ -810,13 +836,8 @@ _setupEventHandlers(menu) {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(calc(-1 * var(--padding)));
   }
-}
-
-.context-menu {
-  animation: contextMenuSlideIn 0.2s ease-out;
-  transform-origin: top center;
 }
 
 /* Focus and Accessibility */
