@@ -41,206 +41,237 @@ or use the minified version:
 <script src="path/to/ContextMenu.min.js"></script>
 ```
 
-## Usage
-
-### Basic Example
+## Quick Start
 
 ```javascript
+// Create a new context menu
 const menu = new ContextMenu({
   width: 250,
-  animation: { enabled: true, duration: 300 },
-  style: { backgroundColor: '#f8f9fa', accent: '#007bff' }
+  animation: { enabled: true }
 });
 
-menu
-  .button('Action 1', () => alert('Action 1 triggered'))
-  .button('Action 2', () => alert('Action 2 triggered'))
-  .separator()
-  .checkbox('Enable feature', { checked: true, onChange: (checked) => console.log('Checked:', checked) });
+// Add menu items
+menu.button('Copy', () => navigator.clipboard.writeText('Copied text'))
+    .button('Paste', () => pasteContent())
+    .separator()
+    .button('Settings', () => openSettings(), { icon: '⚙️' });
 
-menu.showAt(100, 200); // Show menu at x=100, y=200
-
-// or show menu on right click
+// Show the menu at cursor position
 document.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   menu.showAt(e.clientX, e.clientY);
 });
 ```
 
-### Available Item Types
-
-- **Button**
-- **Separator**
-- **Submenu**
-- **Input**
-- **Dropdown**
-- **Checkbox**
-- **Radio Group**
-
-## API Documentation
-
-### Constructor
+## Constructor Options
 
 ```javascript
-new ContextMenu(options = {});
+const menu = new ContextMenu({
+  width: 200,                          // Menu width in pixels
+  animation: {
+    enabled: true,                     // Enable/disable animations
+    duration: 200,                     // Animation duration in ms
+    timing: 'ease-out'                 // Animation timing function
+  },
+  position: {
+    xOffset: 0,                        // Horizontal offset
+    yOffset: 0                         // Vertical offset
+  },
+  icons: {
+    submenu: '❯'                       // Icon for submenu
+  },
+  style: {
+    backgroundColor: '#ffffff',        // Menu background color
+    textColor: '#333333',              // Text color
+    backgroundHoverColor: '#f0f0f0',   // Background color on hover
+    border: 'rgba(0, 0, 0, 0.08)',     // Border color
+    shadow: '0 10px 25px rgba(0, 0, 0, 0.1)', // Shadow
+    accent: '#3b82f6',                 // Accent color for marked items
+    // Additional styling options available
+  },
+  closeOnClick: true,                  // Close menu when item is clicked
+  closeOnOutsideClick: true            // Close menu when clicking outside
+});
 ```
 
-**Options**:
-- `width` *(number)*: Width of the menu (default: `200`).
-- `animation` *(object)*: Animation settings:
-    - `enabled` *(boolean)*: Enable or disable animation (default: `true`).
-    - `duration` *(number)*: Duration in milliseconds (default: `200`).
-    - `timing` *(string)*: CSS timing function (default: `'ease-out'`).
-- `position` *(object)*: Position offset:
-    - `xOffset` *(number)*: Horizontal offset (default: `0`).
-    - `yOffset` *(number)*: Vertical offset (default: `0`).
-- `icons` *(object)*: Customize icons for submenus
-- `style` *(object)*: Customizable styles (background color, hover effects, etc.).
-    - `backgroundColor` *(string)*: Background color of the menu (default: `#ffffff`).
-    - `textColor` *(string)*: Text color of the menu items (default: `#333333`).
-    - `backgroundHoverColor` *(string)*: Background color on hover (default: `#f0f0f0`).
-    - `border` *(string)*: Border color (default: `rgba(0, 0, 0, 0.08)`).
-    - `shadow` *(string)*: Box shadow (default: `0 10px 25px rgba(0, 0, 0, 0.1)`).
-    - `accent` *(string)*: Accent color for active items (default: `#3b82f6`).
-    - `separator` *(string)*: Separator color (default: `rgba(0, 0, 0, 0.08)`).
+## Menu Item Types
 
-*indentation means that the item is a child of the item above it*
+### Button
 
-### Methods
+Simple clickable menu item.
 
-#### Adding Menu Items
-
-- `.button(text, action, config)`
-- `.input(label, config)`
-- `.dropdown(label, options, config)`
-- `.checkbox(text, config)`
-- `.radioGroup(name, options, config)`
-- `.separator()`
-- `.submenu(text, submenuBuilder, config)`
-
-#### Menu Actions
-
-- `.showAt(x, y, autoAdd = true)`: Display the menu at a specific location.
-- `.destroy()`: Remove the menu from the DOM.
-
-
-
-### Item Types
-
-#### **BUTTON**<br>
-  Adds a button to the menu.  
-<br>
-  *Parameters*:  
-- `text` _(string)_  
-- `action` _(function)_  
-- `config` _(object)_  
-  - `icon` _(string)_ any ASCII character (includes emojis).  
-  - `ficon` _(string)_ any icon class (`fas fa-save`, ...).  
-  - `disabled` _(bool)_ whether the button is disabled.  
-  - `marked` _(bool)_ whether the button should stand out (default: `false`).  
-
-**Example**:  
 ```javascript
-menu.button('Save', () => console.log('Saved'), //text, action
-    { icon: 'save', ficon: 'far fa-save', disabled: false, marked: false }); //config
+menu.button('Label', () => {
+  // Action to perform when clicked
+}, {
+  icon: '✓',                   // Optional icon before text
+  ficon: 'fa fa-check',        // Optional font icon class
+  disabled: false,             // Disable the button
+  marked: false                // Apply accent styling to mark as selected
+});
 ```
 
----
+### Separator
 
-#### **INPUT**<br>
-  Adds an input field to the menu.  
-  <br>
-  *Parameters*:
-- `label` _(string)_
-- `config` _(object)_
-    - `placeholder` _(string)_ placeholder text for the input.
-    - `value` _(string)_ initial value of the input.
-    - `onChange` _(function)_ callback when the input value changes.
-  
-**Example**:
-```javascript
-menu.input('Name', { placeholder: 'Enter your name', onChange: (value) => console.log(value) });
-```
+Adds a horizontal line to separate menu items.
 
----
-
-#### **DROPDOWN**<br>
-  Adds a dropdown to the menu.  
-  <br>
-  *Parameters*:
-- `label` _(string)_
-- `options` _(array)_ list of options for the dropdown.
-- `config` _(object)_
-    - `value` _(any)_ selected value(s).
-    - `onChange` _(function)_ callback for selection changes.
-    - `multiSelect` _(boolean)_ enables multi-selection (default: `false`).
-
-**Example**:
-```javascript
-menu.dropdown('Select Color', ['Red', 'Green', 'Blue'], { value: 'Green' });
-```
-
----
-
-#### **CHECKBOX**<br>
-  Adds a checkbox to the menu.  
-  <br>
-  *Parameters*:
-- `text` _(string)_
-- `config` _(object)_
-    - `checked` _(boolean)_ initial checked state (default: `false`).
-    - `onChange` _(function)_ callback when the state changes.
-
-**Example**:
-```javascript
-menu.checkbox('Enable Feature', { checked: true, onChange: (checked) => console.log(checked) });
-```
-
----
-
-#### **RADIO GROUP**<br>
-  Adds a group of radio buttons to the menu.  
-  <br>
-  *Parameters*:
-- `name` _(string)_ name for the radio group.
-- `options` _(array)_ list of radio options with `text` and `value`.
-- `config` _(object)_
-    - `onChange` _(function)_ callback when a radio button is selected.
-
-**Example**:
-```javascript
-menu.radioGroup('Gender', [{ text: 'Male', value: 'male' }, { text: 'Female', value: 'female' }]);
-```
-
----
-
-#### **SEPARATOR**<br>
-  Adds a separator line to the menu.  
-
-**Example**:
 ```javascript
 menu.separator();
 ```
 
----
+### Submenu
 
-#### **SUBMENU**<br>
-  Adds a nested submenu to the menu.  
-  <br>
-  *Parameters*:
-- `text` _(string)_ label for the submenu.
-- `submenuBuilder` _(function)_ builder function to construct the submenu.
-- `config` _(object)_
-    - `icon` _(string)_ icon for the submenu.
-    - `ficon` _(string)_ dynamic icon function.
+Creates a nested submenu.
 
-**Example**:
 ```javascript
-menu.submenu('Settings', (submenu) => { 
-    submenu.button('Option 1', () => console.log('Option 1'));
-}, { icon: '⚙️' });
+menu.submenu('More Options', (submenu) => {
+  submenu.button('Option 1', () => {})
+         .button('Option 2', () => {});
+}, {
+  icon: '↪'                    // Optional icon
+});
 ```
 
+### Input
+
+Adds a text input field.
+
+```javascript
+menu.input('Search', {
+  placeholder: 'Type to search...',
+  value: '',                   // Default value
+  onChange: (value) => {
+    // Handle input changes
+  }
+});
+```
+
+### Dropdown
+
+Creates a dropdown select element.
+
+```javascript
+menu.dropdown('Select Size', [
+  { label: 'Small', value: 'sm' },
+  { label: 'Medium', value: 'md' },
+  { label: 'Large', value: 'lg' }
+], {
+  value: 'md',                 // Default selected value
+  onChange: (value) => {
+    // Handle selection changes
+  }
+});
+```
+
+### Checkbox
+
+Adds a checkbox item.
+
+```javascript
+menu.checkbox('Enable Feature', {
+  checked: false,              // Initial state
+  onChange: (checked) => {
+    // Handle checkbox state changes
+  }
+});
+```
+
+### Radio Group
+
+Creates a group of radio buttons.
+
+```javascript
+menu.radioGroup('theme', [
+  { label: 'Light', value: 'light', checked: true },
+  { label: 'Dark', value: 'dark' },
+  { label: 'System', value: 'system' }
+], {
+  onChange: (value) => {
+    // Handle radio selection changes
+  }
+});
+```
+
+### Search Select
+
+Creates a searchable multi-select component.
+
+```javascript
+menu.searchSelect('Select Items', [
+  { label: 'Item 1', value: 'item1' },
+  { label: 'Item 2', value: 'item2' },
+  { label: 'Item 3', value: 'item3' }
+], {
+  onChange: (selectedValues) => {
+    // Handle selection changes
+    // selectedValues is an array of selected values
+  }
+});
+```
+
+## Methods
+
+### Show Methods
+
+Display the menu at specific coordinates:
+
+```javascript
+// Show at position (x, y)
+const menuElement = menu.showAt(100, 200);
+
+// The method returns the DOM element for the menu
+```
+
+### Management Methods
+
+```javascript
+// Remove the menu from DOM
+menu.destroy();
+
+// Remove all items from the menu
+menu.clear();
+```
+
+## Advanced Usage
+
+### Creating Context Menu for Specific Elements
+
+```javascript
+document.getElementById('myElement').addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  
+  // Create a menu specific for this element
+  const elementMenu = new ContextMenu({width: 200});
+  elementMenu.button('Edit Element', () => editElement(e.target))
+             .button('Delete Element', () => deleteElement(e.target));
+             
+  elementMenu.showAt(e.clientX, e.clientY);
+});
+```
+
+### Dynamic Menu Items
+
+```javascript
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  
+  const menu = new ContextMenu();
+  
+  // Add basic items for all elements
+  menu.button('Copy', () => {});
+  
+  // Add specific items based on target element
+  if (e.target.tagName === 'IMG') {
+    menu.button('Save Image', () => saveImage(e.target.src))
+        .button('Copy Image URL', () => copyText(e.target.src));
+  } else if (e.target.tagName === 'A') {
+    menu.button('Open Link', () => window.open(e.target.href, '_blank'))
+        .button('Copy Link', () => copyText(e.target.href));
+  }
+  
+  menu.showAt(e.clientX, e.clientY);
+});
+```
 
 ## Styling
 
@@ -259,6 +290,10 @@ const menu = new ContextMenu({
   }
 });
 ```
+
+## Accessibility
+
+The menu uses semantic HTML and includes ARIA attributes for accessibility. Keyboard navigation is supported within menu items.
 
 ## Contributing
 
